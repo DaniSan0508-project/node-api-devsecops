@@ -1,0 +1,40 @@
+name: DevSecOps CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build, Test and Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Obter o código do repositório
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Configurar o ambiente do Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Instalar as dependências do projeto (npm ci é preferido em CI pois garante instalações limpas baseadas no package-lock.json)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Compilar/Buildar o projeto para garantir que não há erros de sintaxe ou tipagem
+      - name: Build project
+        run: npm run build
+
+      # 5. Executar a suíte de testes unitários
+      - name: Run tests
+        run: npm run test
+
+      # 6. DevSecOps Step: Auditoria de vulnerabilidades de segurança nas dependências
+      - name: Audit dependencies (Security Scan)
+        run: npm audit --audit-level=high
