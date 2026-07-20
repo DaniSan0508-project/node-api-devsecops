@@ -25,7 +25,7 @@ jobs:
 
       # 3. Instalar as dependências do projeto (npm ci é preferido em CI pois garante instalações limpas baseadas no package-lock.json)
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       # 4. Compilar/Buildar o projeto para garantir que não há erros de sintaxe ou tipagem
       - name: Build project
