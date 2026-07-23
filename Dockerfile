@@ -1,7 +1,7 @@
 # ==========================================
 # Estágio 1: Builder (Compilação do Código)
 # ==========================================
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /usr/src/app
@@ -21,7 +21,7 @@ RUN npm run build
 # ==========================================
 # Estágio 2: Runner (Imagem final de Produção)
 # ==========================================
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 # Define o ambiente como produção
 ENV NODE_ENV=production
