@@ -29,6 +29,9 @@ FROM node:24-alpine AS runner
 # Atualiza pacotes do sistema para mitigar vulnerabilidades de SO da imagem base
 RUN apk update && apk upgrade --no-cache
 
+# Atualiza o NPM global para mitigar vulnerabilidades internas de pacotes do próprio NPM
+RUN npm install -g npm@latest
+
 # Define o ambiente como produção
 ENV NODE_ENV=production
 ENV PORT=3000
