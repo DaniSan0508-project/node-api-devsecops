@@ -4,6 +4,5 @@ dist
 .git
 .github
 README.md
-tsconfig.json
 Dockerfile
 .dockerignore
