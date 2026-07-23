@@ -3,6 +3,9 @@
 # ==========================================
 FROM node:24-alpine AS builder
 
+# Atualiza pacotes do sistema para mitigar vulnerabilidades de SO da imagem base
+RUN apk update && apk upgrade --no-cache
+
 # Define o diretório de trabalho dentro do container
 WORKDIR /usr/src/app
 
@@ -22,6 +25,9 @@ RUN npm run build
 # Estágio 2: Runner (Imagem final de Produção)
 # ==========================================
 FROM node:24-alpine AS runner
+
+# Atualiza pacotes do sistema para mitigar vulnerabilidades de SO da imagem base
+RUN apk update && apk upgrade --no-cache
 
 # Define o ambiente como produção
 ENV NODE_ENV=production
