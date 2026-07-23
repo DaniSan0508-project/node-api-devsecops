@@ -7,34 +7,96 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # ==========================================
+  # JOB 1: Testes e Qualidade do Código (Build e Test)
+  # ==========================================
   build-and-test:
-    name: Build, Test and Scan
+    name: Build & Test Application
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Obter o código do repositório
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Configurar o ambiente do Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
           cache: 'npm'
 
-      # 3. Instalar as dependências do projeto (npm ci é preferido em CI pois garante instalações limpas baseadas no package-lock.json)
+      # npm ci garante instalações limpas baseadas estritamente no package-lock.json
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # 4. Compilar/Buildar o projeto para garantir que não há erros de sintaxe ou tipagem
       - name: Build project
         run: npm run build
 
-      # 5. Executar a suíte de testes unitários
       - name: Run tests
         run: npm run test
 
-      # 6. DevSecOps Step: Auditoria de vulnerabilidades de segurança nas dependências
-      - name: Audit dependencies (Security Scan)
+  # ==========================================
+  # JOB 2: Secret Scanning (Prevenção de Vazamento de Credenciais)
+  # ==========================================
+  secret-scanning:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necessário 0 para baixar todo o histórico de commits para análise
+
+      - name: Run Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================
+  # JOB 3: Software Composition Analysis - SCA (Vulnerabilidade de Dependências)
+  # ==========================================
+  dependency-security:
+    name: Dependency Audit (SCA)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Falha a esteira se encontrar vulnerabilidades de nível HIGH (Alto) ou CRITICAL (Crítico)
+      - name: Audit Node dependencies
         run: npm audit --audit-level=high
+
+  # ==========================================
+  # JOB 4: Segurança do Container Docker (Build & Trivy Scan)
+  # ==========================================
+  container-security:
+    name: Container Security (Trivy Scan)
+    runs-on: ubuntu-latest
+    needs: [build-and-test, dependency-security]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Constrói a imagem Docker localmente usando o Dockerfile criado
+      - name: Build Docker Image
+        run: docker build -t node-api-devsecops:${{ github.sha }} .
+
+      # Escaneia a imagem Docker recém-criada usando o Trivy
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'node-api-devsecops:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1' # Faz o workflow falhar se encontrar problemas graves
+          ignore-unfixed: true # Ignora vulnerabilidades que ainda não possuem correção oficial
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
